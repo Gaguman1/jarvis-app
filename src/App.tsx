@@ -65,10 +65,12 @@ function App() {
       const handleUpdateMessage = (_event: any, message: any) => {
         console.log("Update message:", message);
         
-        // Si es un error y no es manual, ignoramos para no mostrar el banner rojo al inicio
-        if (message.status === 'error' && !message.isManual) {
-          console.warn("Update error ignored because it was an automatic check:", message.text);
-          return;
+        // Si no es manual, ignoramos los mensajes de error, checking y not-available para no mostrar banners innecesarios al inicio
+        if (!message.isManual) {
+          if (message.status === 'checking' || message.status === 'error' || message.status === 'not-available') {
+            setUpdateStatus('idle');
+            return;
+          }
         }
 
         // Si no hay actualizaciones, avisamos si fue manual y salimos
