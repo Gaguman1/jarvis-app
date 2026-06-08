@@ -34,8 +34,23 @@ function App() {
   const [pythonAvailable, setPythonAvailable] = useState<boolean | null>(null); // null = checking
   const [autoLaunch, setAutoLaunch] = useState(true);
   const [isCameraLive, setIsCameraLive] = useState(false);
+  const [isScreenLive, setIsScreenLive] = useState(false);
   
   const liveVideoRef = useRef<HTMLVideoElement>(null);
+
+  const toggleScreenLive = async () => {
+    let ipc = window.ipcRenderer;
+    if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
+    if (!ipc) return;
+    
+    if (isScreenLive) {
+      await ipc.invoke('stop-screen-overlay');
+      setIsScreenLive(false);
+    } else {
+      await ipc.invoke('start-screen-overlay');
+      setIsScreenLive(true);
+    }
+  };
   
   // Auto-updater states
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error' | 'not-available'>('idle');
@@ -438,10 +453,18 @@ function App() {
           canvas.getContext('2d')?.drawImage(liveVideoRef.current, 0, 0);
           finalImage = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
         } catch(e) { console.error("Error capturing live frame:", e); }
+      } else if (isScreenLive) {
+        try {
+          let ipc = window.ipcRenderer;
+          if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
+          if (ipc) {
+            finalImage = await ipc.invoke('capture-screen');
+          }
+        } catch(e) { console.error("Error capturing live screen:", e); }
       }
 
       const result = await chatWithJarvis({ audioData: audioBase64 }, messages, finalImage);
-      if (!isCameraLive) {
+      if (!isCameraLive && !isScreenLive) {
         setAttachedImage(null);
       }
       if (result) {
@@ -710,21 +733,13 @@ function App() {
           
           <div className="input-area" style={{ position: 'relative' }}>
             <button 
-              className="vision-button"
-              onClick={async () => {
-                try {
-                  let ipc = window.ipcRenderer;
-                  if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
-                  
-                  if (ipc) {
-                    const base64 = await ipc.invoke('capture-screen');
-                    setAttachedImage(base64);
-                  } else {
-                    console.error("IPC no disponible");
-                  }
-                } catch(e) { console.error(e); }
+              className={`vision-button ${isScreenLive ? 'live-active' : ''}`}
+              onClick={toggleScreenLive}
+              title={isScreenLive ? "Apagar Visión de Pantalla Continua" : "Activar Visión de Pantalla Continua"}
+              style={{ 
+                backgroundColor: isScreenLive ? 'rgba(14, 165, 233, 0.3)' : 'rgba(255, 255, 255, 0.05)', 
+                borderColor: isScreenLive ? '#0ea5e9' : 'rgba(255,255,255,0.1)' 
               }}
-              title="Capturar Pantalla"
             >
               💻
             </button>

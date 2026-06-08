@@ -249,6 +249,61 @@ ipcMain.handle('capture-screen', async () => {
   throw new Error("No screen found");
 });
 
+// === Screen Overlay ===
+let overlayWindow: BrowserWindow | null = null;
+
+ipcMain.handle('start-screen-overlay', () => {
+  if (overlayWindow) return { success: true };
+  
+  const { screen } = require('electron');
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.workAreaSize;
+
+  overlayWindow = new BrowserWindow({
+    width,
+    height,
+    x: 0,
+    y: 0,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    hasShadow: false,
+    focusable: false,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    }
+  });
+
+  overlayWindow.setIgnoreMouseEvents(true);
+  
+  // Load the overlay HTML
+  if (VITE_DEV_SERVER_URL) {
+    overlayWindow.loadURL(`${VITE_DEV_SERVER_URL}overlay.html`);
+  } else {
+    overlayWindow.loadFile(path.join(RENDERER_DIST, 'overlay.html'));
+  }
+
+  // Maximize the window to cover everything including taskbar in some OSs if needed,
+  // but workArea is safer. Alternatively set bounds manually.
+  overlayWindow.setBounds({ x: 0, y: 0, width: screen.getPrimaryDisplay().bounds.width, height: screen.getPrimaryDisplay().bounds.height });
+
+  overlayWindow.on('closed', () => {
+    overlayWindow = null;
+  });
+  
+  return { success: true };
+});
+
+ipcMain.handle('stop-screen-overlay', () => {
+  if (overlayWindow) {
+    overlayWindow.close();
+    overlayWindow = null;
+  }
+  return { success: true };
+});
+
 // === Edge TTS ===
 ipcMain.handle('speak-text', async (event, text: string) => {
   try {
