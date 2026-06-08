@@ -207,13 +207,13 @@ ipcMain.handle('execute-command', async (event, command: string) => {
   });
 });
 
-// === Open URL in default browser (De-elevated safely) ===
-// J.A.R.V.I.S runs as Admin. shell.openExternal inherits Admin, which fails if Chrome is already open as a normal user.
-// Using spawn('explorer.exe', [url]) passes the URL to the desktop shell (which is non-elevated).
-// spawn protects special characters like '&' from cmd.exe interpretation.
+// === Open URL in default browser (Hardcoded Profile 4) ===
+// Due to 14 profiles confusing Windows default handler, we force launch Chrome executable directly
+// specifying the exactly requested profile ('Profile 4' which maps to '1 Axel NORMAL').
 ipcMain.handle('open-url', async (event, url: string) => {
   try {
-    const child = spawn('explorer.exe', [url], {
+    const chromePath = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
+    const child = spawn(chromePath, ['--profile-directory=Profile 4', url], {
       detached: true,
       stdio: 'ignore'
     });
