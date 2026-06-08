@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, desktopCapturer, shell } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { exec, spawn } from 'child_process'
+import { exec } from 'node:child_process'
 import { session } from 'electron'
 import fs from 'node:fs/promises'
 import { readFileSync } from 'node:fs'
@@ -208,16 +208,17 @@ ipcMain.handle('execute-command', async (event, command: string) => {
 });
 
 // === Open URL in default browser (Hardcoded Profile 4) ===
-// Due to 14 profiles confusing Windows default handler, we force launch Chrome executable directly
-// specifying the exactly requested profile ('Profile 4' which maps to '1 Axel NORMAL').
+// Due to 14 profiles confusing Windows default handler, we force launch Chrome executable directly.
+// We use exec instead of spawn because spawn incorrectly escapes the space in "Profile 4"
+// causing Chrome to fail to recognize the profile.
 ipcMain.handle('open-url', async (event, url: string) => {
   try {
     const chromePath = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
-    const child = spawn(chromePath, ['--profile-directory=Profile 4', url], {
-      detached: true,
-      stdio: 'ignore'
+    const safeUrl = url.replace(/"/g, ''); // Prevents command injection
+    const commandLine = `"${chromePath}" --profile-directory="Profile 4" "${safeUrl}"`;
+    exec(commandLine, (error) => {
+      if (error) console.error('Error opening URL via exec:', error);
     });
-    child.unref();
     return { success: true };
   } catch (error: any) {
     console.error('Error opening URL:', error);
