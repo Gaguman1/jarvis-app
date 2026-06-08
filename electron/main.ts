@@ -207,11 +207,17 @@ ipcMain.handle('execute-command', async (event, command: string) => {
   });
 });
 
-// === Open URL in default browser ===
-// Uses Electron's native shell.openExternal for instantaneous, reliable opening.
+// === Open URL in default browser (De-elevated safely) ===
+// J.A.R.V.I.S runs as Admin. shell.openExternal inherits Admin, which fails if Chrome is already open as a normal user.
+// Using spawn('explorer.exe', [url]) passes the URL to the desktop shell (which is non-elevated).
+// spawn protects special characters like '&' from cmd.exe interpretation.
 ipcMain.handle('open-url', async (event, url: string) => {
   try {
-    await shell.openExternal(url);
+    const child = spawn('explorer.exe', [url], {
+      detached: true,
+      stdio: 'ignore'
+    });
+    child.unref();
     return { success: true };
   } catch (error: any) {
     console.error('Error opening URL:', error);
