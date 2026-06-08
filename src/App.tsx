@@ -33,6 +33,9 @@ function App() {
   const [installingApp, setInstallingApp] = useState<string | null>(null);
   const [pythonAvailable, setPythonAvailable] = useState<boolean | null>(null); // null = checking
   const [autoLaunch, setAutoLaunch] = useState(true);
+  const [isCameraLive, setIsCameraLive] = useState(false);
+  
+  const liveVideoRef = useRef<HTMLVideoElement>(null);
   
   // Auto-updater states
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error' | 'not-available'>('idle');
@@ -40,6 +43,28 @@ function App() {
   const [updateProgress, setUpdateProgress] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const toggleLiveCamera = async () => {
+    if (isCameraLive) {
+      if (liveVideoRef.current && liveVideoRef.current.srcObject) {
+        const stream = liveVideoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+        liveVideoRef.current.srcObject = null;
+      }
+      setIsCameraLive(false);
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (liveVideoRef.current) {
+          liveVideoRef.current.srcObject = stream;
+        }
+        setIsCameraLive(true);
+      } catch (err) {
+        console.error("Error accessing camera:", err);
+        alert("No se pudo acceder a la cámara frontal. Por favor, revisa los permisos.");
+      }
+    }
+  };
 
   // Check Python availability & Auto-updater listener on mount
   useEffect(() => {
@@ -404,8 +429,21 @@ function App() {
   const handleAudioSend = async (audioBase64: string) => {
     setIsTyping(true);
     try {
-      const result = await chatWithJarvis({ audioData: audioBase64 }, messages, attachedImage);
-      setAttachedImage(null);
+      let finalImage = attachedImage;
+      if (isCameraLive && liveVideoRef.current) {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = liveVideoRef.current.videoWidth;
+          canvas.height = liveVideoRef.current.videoHeight;
+          canvas.getContext('2d')?.drawImage(liveVideoRef.current, 0, 0);
+          finalImage = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+        } catch(e) { console.error("Error capturing live frame:", e); }
+      }
+
+      const result = await chatWithJarvis({ audioData: audioBase64 }, messages, finalImage);
+      if (!isCameraLive) {
+        setAttachedImage(null);
+      }
       if (result) {
         // Guardar el mensaje del usuario con la transcripción de Whisper
         if (result.transcription) {
@@ -508,7 +546,15 @@ function App() {
   }
 
   return (
-    <div className="jarvis-container">
+    <div className={`jarvis-container ${isCameraLive ? 'camera-live' : ''}`}>
+      <video 
+        ref={liveVideoRef} 
+        className="live-background-video" 
+        autoPlay 
+        playsInline 
+        muted 
+        style={{ display: isCameraLive ? 'block' : 'none' }}
+      />
       <header className="header">
         <div className="logo">J.A.R.V.I.S.</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -683,24 +729,15 @@ function App() {
               💻
             </button>
             <button 
-              className="vision-button"
-              onClick={async () => {
-                try {
-                  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                  const video = document.createElement('video');
-                  video.srcObject = stream;
-                  await video.play();
-                  const canvas = document.createElement('canvas');
-                  canvas.width = video.videoWidth;
-                  canvas.height = video.videoHeight;
-                  canvas.getContext('2d')?.drawImage(video, 0, 0);
-                  setAttachedImage(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
-                  stream.getTracks().forEach(t => t.stop());
-                } catch(e) { console.error(e); }
+              className={`vision-button ${isCameraLive ? 'live-active' : ''}`}
+              onClick={toggleLiveCamera}
+              title={isCameraLive ? "Apagar Visión Continua" : "Activar Modo de Visión Continua"}
+              style={{ 
+                backgroundColor: isCameraLive ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.05)', 
+                borderColor: isCameraLive ? '#10b981' : 'rgba(255,255,255,0.1)' 
               }}
-              title="Tomar Foto"
             >
-              📸
+              👁️
             </button>
             <button 
               className="vision-button"
