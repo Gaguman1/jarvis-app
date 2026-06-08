@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, desktopCapturer, shell } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execFile } from 'node:child_process'
+import { exec } from 'node:child_process'
 import { session } from 'electron'
 import fs from 'node:fs/promises'
 import { readFileSync } from 'node:fs'
@@ -207,28 +207,30 @@ ipcMain.handle('execute-command', async (event, command: string) => {
   });
 });
 
-// === Open URL in default browser (De-elevated to Red Profile) ===
+// === Open URL in default browser (Clean Environment to Red Profile) ===
 // Due to 14 profiles confusing Windows, we force launch Chrome executable directly.
-// Because J.A.R.V.I.S runs elevated, UIPI blocks Chrome from reusing the non-elevated "Profile 4".
-// We use a PowerShell script to invoke Shell.Application COM object which communicates with the desktop explorer shell.
-// This de-elevates the call back to Medium Integrity (normal user) so Chrome accepts the profile.
+// Electron passes Chromium environment variables (like CHROME_CRASHPAD_PIPE_NAME) to child processes.
+// When Chrome inherits these, it thinks it's an Electron sub-process, ignores the profile, and opens a Gray profile.
+// We clean the environment variables to make Chrome launch perfectly pure.
 ipcMain.handle('open-url', async (event, url: string) => {
   try {
     const chromePath = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
-    
-    // We escape single quotes in the URL because the URL will be wrapped in single quotes in PowerShell
-    const safeUrl = url.replace(/'/g, "''");
-    
-    // The PowerShell script to de-elevate the process creation
-    const psScript = `
-$shell = New-Object -ComObject Shell.Application
-$chromeArgs = '--profile-directory="Profile 4" "{0}"' -f '${safeUrl}'
-$shell.ShellExecute('${chromePath}', $chromeArgs, '', 'open', 1)
-`;
+    const safeUrl = url.replace(/"/g, ''); // Prevents command injection
+    const commandLine = `start "" "${chromePath}" --profile-directory="Profile 4" "${safeUrl}"`;
 
-    // We use execFile to safely pass the script block to PowerShell without cmd.exe interfering with special characters
-    execFile('powershell.exe', ['-NoProfile', '-WindowStyle', 'Hidden', '-Command', psScript], (error) => {
-      if (error) console.error('Error opening URL via PowerShell COM:', error);
+    // Strip Electron/Chrome-specific environment variables that confuse native Chrome
+    const cleanEnv = { ...process.env };
+    for (const key in cleanEnv) {
+      if (key.toUpperCase().startsWith('ELECTRON_') || 
+          key.toUpperCase().startsWith('CHROME_') || 
+          key.toUpperCase().startsWith('GOOGLE_') ||
+          key.toUpperCase().startsWith('NODE_')) {
+        delete cleanEnv[key];
+      }
+    }
+
+    exec(commandLine, { env: cleanEnv }, (error) => {
+      if (error) console.error('Error opening URL via exec with clean env:', error);
     });
     
     return { success: true };
