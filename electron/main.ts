@@ -209,13 +209,12 @@ ipcMain.handle('execute-command', async (event, command: string) => {
 
 // === Open URL in default browser (Hardcoded Profile 4) ===
 // Due to 14 profiles confusing Windows default handler, we force launch Chrome executable directly.
-// We use exec instead of spawn because spawn incorrectly escapes the space in "Profile 4"
-// causing Chrome to fail to recognize the profile.
+// We use exec with 'start ""' to prevent cmd.exe from stripping quotes and breaking on '&' in URLs.
 ipcMain.handle('open-url', async (event, url: string) => {
   try {
     const chromePath = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
     const safeUrl = url.replace(/"/g, ''); // Prevents command injection
-    const commandLine = `"${chromePath}" --profile-directory="Profile 4" "${safeUrl}"`;
+    const commandLine = `start "" "${chromePath}" --profile-directory="Profile 4" "${safeUrl}"`;
     exec(commandLine, (error) => {
       if (error) console.error('Error opening URL via exec:', error);
     });
