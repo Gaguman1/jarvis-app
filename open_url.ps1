@@ -3,6 +3,5 @@ param (
     [string]$Url
 )
 
-# Dejamos que Windows decida cómo abrir el enlace usando el navegador predeterminado
-# Esto abrirá el enlace en la ventana de Chrome que esté activa, con la sesión ya iniciada.
-Start-Process -FilePath $Url
+# Usar el explorador de archivos para "bajar" los privilegios y abrir en la sesión normal del usuario
+Start-Process "explorer.exe" -ArgumentList $Url
