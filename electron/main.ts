@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, desktopCapturer, shell } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { exec } from 'node:child_process'
+import { execFile } from 'node:child_process'
 import { session } from 'electron'
 import fs from 'node:fs/promises'
 import { readFileSync } from 'node:fs'
@@ -207,17 +207,30 @@ ipcMain.handle('execute-command', async (event, command: string) => {
   });
 });
 
-// === Open URL in default browser (Hardcoded Profile 4) ===
-// Due to 14 profiles confusing Windows default handler, we force launch Chrome executable directly.
-// We use exec with 'start ""' to prevent cmd.exe from stripping quotes and breaking on '&' in URLs.
+// === Open URL in default browser (De-elevated to Red Profile) ===
+// Due to 14 profiles confusing Windows, we force launch Chrome executable directly.
+// Because J.A.R.V.I.S runs elevated, UIPI blocks Chrome from reusing the non-elevated "Profile 4".
+// We use a PowerShell script to invoke Shell.Application COM object which communicates with the desktop explorer shell.
+// This de-elevates the call back to Medium Integrity (normal user) so Chrome accepts the profile.
 ipcMain.handle('open-url', async (event, url: string) => {
   try {
     const chromePath = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
-    const safeUrl = url.replace(/"/g, ''); // Prevents command injection
-    const commandLine = `start "" "${chromePath}" --profile-directory="Profile 4" "${safeUrl}"`;
-    exec(commandLine, (error) => {
-      if (error) console.error('Error opening URL via exec:', error);
+    
+    // We escape single quotes in the URL because the URL will be wrapped in single quotes in PowerShell
+    const safeUrl = url.replace(/'/g, "''");
+    
+    // The PowerShell script to de-elevate the process creation
+    const psScript = `
+$shell = New-Object -ComObject Shell.Application
+$chromeArgs = '--profile-directory="Profile 4" "{0}"' -f '${safeUrl}'
+$shell.ShellExecute('${chromePath}', $chromeArgs, '', 'open', 1)
+`;
+
+    // We use execFile to safely pass the script block to PowerShell without cmd.exe interfering with special characters
+    execFile('powershell.exe', ['-NoProfile', '-WindowStyle', 'Hidden', '-Command', psScript], (error) => {
+      if (error) console.error('Error opening URL via PowerShell COM:', error);
     });
+    
     return { success: true };
   } catch (error: any) {
     console.error('Error opening URL:', error);
