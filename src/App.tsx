@@ -133,6 +133,7 @@ function App() {
     let finalResponse = responseText;
     const visionMatch = responseText.match(/\[CMD_VISION:\s*(.*?)\]/i);
     const readMatch = responseText.match(/\[CMD_READ:\s*(.*?)\]/i);
+    const urlMatch = responseText.match(/\[CMD_URL:\s*(.*?)\]/i);
     const cmdMatch = responseText.match(/\[CMD:\s*(.*?)\]/i);
     
     if (visionMatch && visionMatch[1]) {
@@ -177,6 +178,14 @@ function App() {
           finalResponse = "Lo siento señor, mis sensores no pudieron acceder a esa información del sistema.";
         }
       }
+    } else if (urlMatch && urlMatch[1]) {
+      const url = urlMatch[1].trim();
+      let ipc = window.ipcRenderer;
+      if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
+      if (ipc) {
+        ipc.invoke('open-url', url);
+      }
+      finalResponse = responseText.replace(/\[CMD_URL:\s*(.*?)\]/ig, '').trim();
     } else if (cmdMatch && cmdMatch[1]) {
       const systemCommand = cmdMatch[1];
       let ipc = window.ipcRenderer;
@@ -204,7 +213,7 @@ function App() {
     speak(finalResponse);
 
     // If Jarvis asked a question (no CMD tags and contains ?), activate follow-up listening
-    const hasCmd = /\[CMD:|CMD_READ:|CMD_VISION:/i.test(responseText);
+    const hasCmd = /\[CMD:|CMD_READ:|CMD_VISION:|CMD_URL:/i.test(responseText);
     if (!hasCmd && finalResponse.includes('?') && isHandsFree) {
       // Wait a moment for the speech to start, then tell Python to listen for the response
       setTimeout(async () => {

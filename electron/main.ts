@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, desktopCapturer } from 'electron'
+import { app, BrowserWindow, ipcMain, desktopCapturer, shell } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { exec, spawn } from 'child_process'
@@ -205,6 +205,17 @@ ipcMain.handle('execute-command', async (event, command: string) => {
       resolve({ success: true, output: stdout });
     });
   });
+});
+
+// === Open URL in default browser (de-elevated) ===
+ipcMain.handle('open-url', async (event, url: string) => {
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error opening URL:', error);
+    return { success: false, error: error.message };
+  }
 });
 
 // === Screen capture ===
