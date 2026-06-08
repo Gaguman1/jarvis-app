@@ -207,10 +207,16 @@ ipcMain.handle('execute-command', async (event, command: string) => {
   });
 });
 
-// === Open URL in default browser (de-elevated) ===
+// === Open URL in default browser (de-elevated via Shell.Application COM) ===
+// Shell.Application.ShellExecute communicates with the desktop Explorer shell,
+// which ALWAYS runs at medium integrity (non-elevated), ensuring the URL opens
+// in the user's existing Chrome session with their account.
 ipcMain.handle('open-url', async (event, url: string) => {
   try {
-    await shell.openExternal(url);
+    const escapedUrl = url.replace(/'/g, "''");
+    exec(`powershell -NoProfile -Command "(New-Object -ComObject Shell.Application).ShellExecute('${escapedUrl}')"`, (error) => {
+      if (error) console.error('Error opening URL via Shell.Application:', error);
+    });
     return { success: true };
   } catch (error: any) {
     console.error('Error opening URL:', error);
