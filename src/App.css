@@ -250,6 +250,7 @@
 .chat-container {
   height: 45vh;
   min-height: 0; /* Permite que el chat haga scroll correctamente */
+  margin-top: auto; /* Empuja el contenedor hacia abajo */
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
