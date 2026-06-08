@@ -208,15 +208,20 @@ ipcMain.handle('execute-command', async (event, command: string) => {
 });
 
 // === Open URL in default browser (de-elevated via Shell.Application COM) ===
+// Uses spawn (not exec) to bypass cmd.exe shell, preserving special URL characters like &
 // Shell.Application.ShellExecute communicates with the desktop Explorer shell,
 // which ALWAYS runs at medium integrity (non-elevated), ensuring the URL opens
 // in the user's existing Chrome session with their account.
 ipcMain.handle('open-url', async (event, url: string) => {
   try {
     const escapedUrl = url.replace(/'/g, "''");
-    exec(`powershell -NoProfile -Command "(New-Object -ComObject Shell.Application).ShellExecute('${escapedUrl}')"`, (error) => {
-      if (error) console.error('Error opening URL via Shell.Application:', error);
+    const psCommand = `(New-Object -ComObject Shell.Application).ShellExecute('${escapedUrl}')`;
+    const child = spawn('powershell', ['-NoProfile', '-Command', psCommand], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true
     });
+    child.unref();
     return { success: true };
   } catch (error: any) {
     console.error('Error opening URL:', error);
