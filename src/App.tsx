@@ -189,7 +189,8 @@ function App() {
     setDebugText('Analizando rostro... Por favor, mire a la cámara (10s máximo).');
     try {
       const timeout = new Promise<any>((resolve) => setTimeout(() => resolve(null), 10000));
-      const detectionPromise = faceapi.detectSingleFace(liveVideoRef.current, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+      const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 });
+      const detectionPromise = faceapi.detectSingleFace(liveVideoRef.current, detectorOptions).withFaceLandmarks().withFaceDescriptor();
       const detection = await Promise.race([detectionPromise, timeout]);
       if (detection) {
         const descriptorArray = Array.from(detection.descriptor);
@@ -198,7 +199,7 @@ function App() {
         setDebugText('Rostro registrado exitosamente.');
         speak("Perfil biométrico almacenado, señor. Ahora podré reconocerlo.");
       } else {
-        setDebugText('No se detectó ningún rostro. Acerque su cara a la cámara e inténtelo de nuevo.');
+        setDebugText('No se detectó ningún rostro. Acerque su cara a la cámara, mejore la iluminación e inténtelo de nuevo.');
       }
     } catch (e) {
       console.error(e);
@@ -211,7 +212,8 @@ function App() {
     if (isFaceModelsLoaded && isFaceRegistered && isCameraLive && liveVideoRef.current) {
       interval = setInterval(async () => {
         try {
-          const detection = await faceapi.detectSingleFace(liveVideoRef.current!, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+          const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 });
+          const detection = await faceapi.detectSingleFace(liveVideoRef.current!, detectorOptions).withFaceLandmarks().withFaceDescriptor();
           if (detection) {
             const savedStr = localStorage.getItem('jarvis_face_descriptor');
             if (savedStr) {
