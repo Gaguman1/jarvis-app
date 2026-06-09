@@ -794,6 +794,25 @@ function App() {
     setIsTyping(false);
   };
 
+  // Sync state to widget
+  useEffect(() => {
+    let ipc = window.ipcRenderer;
+    if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
+    if (ipc) {
+      const interval = setInterval(() => {
+        const volume = visualizerRef.current ? visualizerRef.current.style.getPropertyValue('--audio-volume') : '0';
+        ipc.send('sync-widget-state', {
+          isTyping,
+          isJarvisSpeaking,
+          userSpeaking: vad.userSpeaking,
+          volume
+        });
+      }, 50);
+      return () => clearInterval(interval);
+    }
+  }, [isTyping, isJarvisSpeaking, vad.userSpeaking]);
+
+
   // Show loading screen while checking Python
   if (pythonAvailable === null) {
     return (
@@ -839,23 +858,7 @@ function App() {
     );
   }
 
-  // Sync state to widget
-  useEffect(() => {
-    let ipc = window.ipcRenderer;
-    if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
-    if (ipc) {
-      const interval = setInterval(() => {
-        const volume = visualizerRef.current ? visualizerRef.current.style.getPropertyValue('--audio-volume') : '0';
-        ipc.send('sync-widget-state', {
-          isTyping,
-          isJarvisSpeaking,
-          userSpeaking: vad.userSpeaking,
-          volume
-        });
-      }, 50);
-      return () => clearInterval(interval);
-    }
-  }, [isTyping, isJarvisSpeaking, vad.userSpeaking]);
+  // Show Python not found screen
 
   if (window.location.search.includes('widget=true')) {
     return <WidgetApp />;
