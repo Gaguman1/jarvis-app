@@ -3,8 +3,9 @@ import { saveMessage, getMessagesQuery, saveMemory, getMemoriesQuery } from './s
 import { onSnapshot } from 'firebase/firestore'
 import { chatWithJarvis } from './services/gemini'
 import { useWakeWord } from './useWakeWord'
-import * as faceapi from 'face-api.js'
 import './App.css'
+
+declare const faceapi: any;
 
 interface Message {
   id: string;
