@@ -12,6 +12,8 @@ interface Message {
 }
 
 let currentAudio: HTMLAudioElement | null = null;
+let sharedAudioCtx: AudioContext | null = null;
+let sharedAnalyser: AnalyserNode | null = null;
 
 // Ensure TypeScript knows about window.ipcRenderer
 declare global {
@@ -36,8 +38,10 @@ function App() {
   const [isCameraLive, setIsCameraLive] = useState(false);
   const [isScreenLive, setIsScreenLive] = useState(false);
   const [memories, setMemories] = useState<string[]>([]);
+  const [isJarvisSpeaking, setIsJarvisSpeaking] = useState(false);
   
   const liveVideoRef = useRef<HTMLVideoElement>(null);
+  const visualizerRef = useRef<HTMLDivElement>(null);
 
   const toggleScreenLive = async () => {
     let ipc = window.ipcRenderer;
@@ -339,6 +343,61 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
+  const setupAudioVisualizer = (audioElement: HTMLAudioElement) => {
+    try {
+      if (!sharedAudioCtx) {
+        sharedAudioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        sharedAnalyser = sharedAudioCtx.createAnalyser();
+        sharedAnalyser.fftSize = 256;
+        sharedAnalyser.connect(sharedAudioCtx.destination);
+      }
+      
+      const source = sharedAudioCtx.createMediaElementSource(audioElement);
+      source.connect(sharedAnalyser!);
+      
+      const dataArray = new Uint8Array(sharedAnalyser!.frequencyBinCount);
+      let animationId: number;
+
+      const updateVolume = () => {
+        sharedAnalyser!.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+        const average = sum / dataArray.length;
+        // Normalizar volumen
+        const volume = Math.min(average / 100, 1.5);
+        
+        if (visualizerRef.current) {
+          visualizerRef.current.style.setProperty('--audio-volume', volume.toString());
+        }
+        animationId = requestAnimationFrame(updateVolume);
+      };
+
+      audioElement.onplay = () => {
+        setIsJarvisSpeaking(true);
+        if (sharedAudioCtx?.state === 'suspended') sharedAudioCtx.resume();
+        updateVolume();
+      };
+
+      audioElement.onpause = () => {
+        setIsJarvisSpeaking(false);
+        cancelAnimationFrame(animationId);
+        if (visualizerRef.current) visualizerRef.current.style.setProperty('--audio-volume', '0');
+      };
+
+      audioElement.onended = () => {
+        setIsJarvisSpeaking(false);
+        cancelAnimationFrame(animationId);
+        if (visualizerRef.current) visualizerRef.current.style.setProperty('--audio-volume', '0');
+        source.disconnect();
+      };
+    } catch (e) {
+      console.error("Audio visualizer error", e);
+      audioElement.onplay = () => setIsJarvisSpeaking(true);
+      audioElement.onended = () => setIsJarvisSpeaking(false);
+      audioElement.onpause = () => setIsJarvisSpeaking(false);
+    }
+  };
+
   const speak = async (text: string) => {
     if (currentAudio) {
       currentAudio.pause();
@@ -373,6 +432,8 @@ function App() {
           const blob = await response.blob();
           const url = URL.createObjectURL(blob);
           const audio = new Audio(url);
+          audio.crossOrigin = "anonymous";
+          setupAudioVisualizer(audio);
           currentAudio = audio;
           audio.play();
           return;
@@ -391,6 +452,7 @@ function App() {
         const result = await ipc.invoke('speak-text', text);
         if (result.success && result.audioBase64) {
           const audio = new Audio('data:audio/mp3;base64,' + result.audioBase64);
+          setupAudioVisualizer(audio);
           currentAudio = audio;
           audio.play();
           return;
@@ -410,6 +472,16 @@ function App() {
     if (voice) utterance.voice = voice;
     utterance.rate = 1.0;
     utterance.pitch = 0.7;
+    
+    utterance.onstart = () => {
+      setIsJarvisSpeaking(true);
+      if (visualizerRef.current) visualizerRef.current.classList.add('jarvis-speaking-fallback');
+    };
+    utterance.onend = () => {
+      setIsJarvisSpeaking(false);
+      if (visualizerRef.current) visualizerRef.current.classList.remove('jarvis-speaking-fallback');
+    };
+    
     synth.speak(utterance);
   };
 
@@ -725,7 +797,7 @@ function App() {
       )}
 
       <main className="main-content">
-        <div className={`ai-core-visualizer ${isTyping ? 'thinking' : ''} ${vad.userSpeaking ? 'hearing' : ''}`}>
+        <div ref={visualizerRef} className={`ai-core-visualizer ${isTyping ? 'thinking' : ''} ${vad.userSpeaking ? 'hearing' : ''} ${isJarvisSpeaking ? 'jarvis-speaking' : ''}`}>
           <div className="atom">
             <div className="ring ring-1"></div>
             <div className="ring ring-2"></div>

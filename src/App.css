@@ -438,3 +438,29 @@
   animation: pulseMic 1.5s infinite;
   box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
 }
+
+/* Real-time Voice Equalizer */
+.jarvis-speaking .atom {
+  scale: calc(1 + var(--audio-volume, 0) * 0.25);
+  transition: scale 0.05s ease-out;
+}
+
+.jarvis-speaking .brain-core {
+  filter: brightness(calc(1 + var(--audio-volume, 0) * 1.5)) drop-shadow(0 0 calc(20px + var(--audio-volume, 0) * 60px) rgba(14, 165, 233, 0.9));
+  transition: filter 0.05s ease-out;
+}
+
+.jarvis-speaking .ring {
+  border-width: calc(4px + var(--audio-volume, 0) * 4px);
+  box-shadow: 0 0 calc(20px + var(--audio-volume, 0) * 40px) rgba(14, 165, 233, calc(0.6 + var(--audio-volume, 0) * 0.4)), 
+              inset 0 0 calc(20px + var(--audio-volume, 0) * 40px) rgba(14, 165, 233, calc(0.6 + var(--audio-volume, 0) * 0.4));
+  transition: box-shadow 0.05s ease-out, border-width 0.05s ease-out;
+}
+
+.jarvis-speaking-fallback .atom {
+  animation: pulse-speaking 0.5s infinite alternate;
+}
+@keyframes pulse-speaking {
+  0% { scale: 1; filter: brightness(1) drop-shadow(0 0 20px rgba(14, 165, 233, 0.5)); }
+  100% { scale: 1.25; filter: brightness(1.8) drop-shadow(0 0 50px rgba(14, 165, 233, 0.9)); }
+}
