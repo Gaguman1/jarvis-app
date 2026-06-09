@@ -36,7 +36,7 @@ function WidgetApp() {
     let ipc = window.ipcRenderer;
     if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
     if (ipc) {
-      ipc.on('sync-widget-state', (event: any, state: any) => {
+      ipc.on('sync-widget-state', (_event: any, state: any) => {
         setWidgetState(state);
         if (visualizerRef.current && state.volume) {
           visualizerRef.current.style.setProperty('--audio-volume', state.volume);
