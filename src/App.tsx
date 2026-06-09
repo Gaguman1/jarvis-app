@@ -178,9 +178,19 @@ function App() {
       alert("Por favor, active la cámara frontal primero.");
       return;
     }
-    setDebugText('Analizando rostro... Mire a la cámara.');
+    if (!isFaceModelsLoaded) {
+      alert("Los modelos biométricos aún están cargando. Espere unos segundos.");
+      return;
+    }
+    if (liveVideoRef.current.readyState < 2) {
+      alert("La cámara no ha inicializado su transmisión. Intente de nuevo.");
+      return;
+    }
+    setDebugText('Analizando rostro... Por favor, mire a la cámara (10s máximo).');
     try {
-      const detection = await faceapi.detectSingleFace(liveVideoRef.current, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+      const timeout = new Promise<any>((resolve) => setTimeout(() => resolve(null), 10000));
+      const detectionPromise = faceapi.detectSingleFace(liveVideoRef.current, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+      const detection = await Promise.race([detectionPromise, timeout]);
       if (detection) {
         const descriptorArray = Array.from(detection.descriptor);
         localStorage.setItem('jarvis_face_descriptor', JSON.stringify(descriptorArray));
@@ -958,18 +968,18 @@ function App() {
                 borderColor: isFaceRegistered ? '#10b981' : 'rgba(255,255,255,0.1)' 
               }}
             >
-              👁️
+              👤
             </button>
             <button 
               className={`vision-button ${isCameraLive ? 'live-active' : ''}`}
               onClick={toggleLiveCamera}
-              title={isCameraLive ? "Apagar Visión Continua" : "Activar Modo de Visión Continua"}
+              title={isCameraLive ? "Apagar Cámara Frontal" : "Encender Cámara Frontal"}
               style={{ 
                 backgroundColor: isCameraLive ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.05)', 
                 borderColor: isCameraLive ? '#10b981' : 'rgba(255,255,255,0.1)' 
               }}
             >
-              👁️
+              📷
             </button>
             <button 
               className="vision-button"
