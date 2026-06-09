@@ -8,6 +8,14 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>J.A.R.V.I.S.</title>
+    <script>
+      // Polyfill para face-api.js (tfjs) en entornos Electron con NodeIntegration
+      if (typeof require !== 'undefined') {
+        const util = require('util');
+        if (!util.TextEncoder) util.TextEncoder = TextEncoder;
+        if (!util.TextDecoder) util.TextDecoder = TextDecoder;
+      }
+    </script>
     <script src="./face-api.min.js"></script>
   </head>
   <body>

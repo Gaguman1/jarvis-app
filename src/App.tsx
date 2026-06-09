@@ -83,6 +83,11 @@ function App() {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         if (liveVideoRef.current) {
           liveVideoRef.current.srcObject = stream;
+          try {
+            await liveVideoRef.current.play();
+          } catch(e) {
+            console.warn("Video auto-play suppressed", e);
+          }
         }
         setIsCameraLive(true);
       } catch (err) {
