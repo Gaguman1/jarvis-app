@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, desktopCapturer, shell } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { exec } from 'node:child_process'
+import { exec, spawn } from 'node:child_process'
 import { session } from 'electron'
 import fs from 'node:fs/promises'
 import { readFileSync } from 'node:fs'
