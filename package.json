@@ -1,7 +1,7 @@
 {
   "name": "jarvis-app",
   "private": true,
-  "version": "1.7.8",
+  "version": "1.7.9",
   "main": "dist-electron/main.js",
   "description": "J.A.R.V.I.S. - Asistente de Inteligencia Artificial",
   "author": "Antigravity",
