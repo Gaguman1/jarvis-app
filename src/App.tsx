@@ -189,13 +189,17 @@ function App() {
     setDebugText('Analizando rostro... Por favor, mire a la cámara (10s máximo).');
     try {
       const timeout = new Promise<any>((resolve) => setTimeout(() => resolve(null), 10000));
-      const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 });
+      const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.15 });
       
       // Workaround for WebGL video texture bug in modern Electron:
       const canvas = document.createElement('canvas');
       canvas.width = liveVideoRef.current.videoWidth;
       canvas.height = liveVideoRef.current.videoHeight;
-      canvas.getContext('2d')?.drawImage(liveVideoRef.current, 0, 0, canvas.width, canvas.height);
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.filter = 'brightness(1.5) contrast(1.2)';
+        ctx.drawImage(liveVideoRef.current, 0, 0, canvas.width, canvas.height);
+      }
 
       const detectionPromise = faceapi.detectSingleFace(canvas, detectorOptions).withFaceLandmarks().withFaceDescriptor();
       const detection = await Promise.race([detectionPromise, timeout]);
@@ -220,12 +224,16 @@ function App() {
       interval = setInterval(async () => {
         try {
           if (liveVideoRef.current!.readyState < 2) return;
-          const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 });
+          const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.15 });
           
           const canvas = document.createElement('canvas');
           canvas.width = liveVideoRef.current!.videoWidth;
           canvas.height = liveVideoRef.current!.videoHeight;
-          canvas.getContext('2d')?.drawImage(liveVideoRef.current!, 0, 0, canvas.width, canvas.height);
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.filter = 'brightness(1.5) contrast(1.2)';
+            ctx.drawImage(liveVideoRef.current!, 0, 0, canvas.width, canvas.height);
+          }
 
           const detection = await faceapi.detectSingleFace(canvas, detectorOptions).withFaceLandmarks().withFaceDescriptor();
           if (detection) {
