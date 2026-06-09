@@ -190,7 +190,14 @@ function App() {
     try {
       const timeout = new Promise<any>((resolve) => setTimeout(() => resolve(null), 10000));
       const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 });
-      const detectionPromise = faceapi.detectSingleFace(liveVideoRef.current, detectorOptions).withFaceLandmarks().withFaceDescriptor();
+      
+      // Workaround for WebGL video texture bug in modern Electron:
+      const canvas = document.createElement('canvas');
+      canvas.width = liveVideoRef.current.videoWidth;
+      canvas.height = liveVideoRef.current.videoHeight;
+      canvas.getContext('2d')?.drawImage(liveVideoRef.current, 0, 0, canvas.width, canvas.height);
+
+      const detectionPromise = faceapi.detectSingleFace(canvas, detectorOptions).withFaceLandmarks().withFaceDescriptor();
       const detection = await Promise.race([detectionPromise, timeout]);
       if (detection) {
         const descriptorArray = Array.from(detection.descriptor);
@@ -212,8 +219,15 @@ function App() {
     if (isFaceModelsLoaded && isFaceRegistered && isCameraLive && liveVideoRef.current) {
       interval = setInterval(async () => {
         try {
+          if (liveVideoRef.current!.readyState < 2) return;
           const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 });
-          const detection = await faceapi.detectSingleFace(liveVideoRef.current!, detectorOptions).withFaceLandmarks().withFaceDescriptor();
+          
+          const canvas = document.createElement('canvas');
+          canvas.width = liveVideoRef.current!.videoWidth;
+          canvas.height = liveVideoRef.current!.videoHeight;
+          canvas.getContext('2d')?.drawImage(liveVideoRef.current!, 0, 0, canvas.width, canvas.height);
+
+          const detection = await faceapi.detectSingleFace(canvas, detectorOptions).withFaceLandmarks().withFaceDescriptor();
           if (detection) {
             const savedStr = localStorage.getItem('jarvis_face_descriptor');
             if (savedStr) {
