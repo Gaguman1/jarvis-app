@@ -61,6 +61,36 @@ function WidgetApp() {
         <div className="ring ring-3"></div>
         <img src="./cyber_brain.png" alt="Brain Core" className="brain-core" />
       </div>
+      <button 
+        title="Restaurar ventana principal"
+        onClick={(e) => {
+          e.stopPropagation();
+          let ipc = window.ipcRenderer;
+          if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
+          if (ipc) ipc.send('disable-widget-mode');
+        }}
+        style={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          background: 'rgba(14, 165, 233, 0.2)',
+          border: '1px solid rgba(14, 165, 233, 0.5)',
+          color: '#0ea5e9',
+          borderRadius: '50%',
+          width: '32px',
+          height: '32px',
+          cursor: 'pointer',
+          zIndex: 100,
+          WebkitAppRegion: 'no-drag',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          fontSize: '16px',
+          transition: 'all 0.3s'
+        }}
+      >
+        ↗️
+      </button>
     </div>
   );
 }
