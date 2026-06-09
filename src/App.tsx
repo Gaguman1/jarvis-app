@@ -116,7 +116,7 @@ function App() {
     const loadFaceModels = async () => {
       try {
         await Promise.all([
-          faceapi.nets.tinyFaceDetector.loadFromUri('./models'),
+          faceapi.nets.ssdMobilenetv1.loadFromUri('./models'),
           faceapi.nets.faceLandmark68Net.loadFromUri('./models'),
           faceapi.nets.faceRecognitionNet.loadFromUri('./models')
         ]);
@@ -189,7 +189,7 @@ function App() {
     setDebugText('Analizando rostro... Por favor, mire a la cámara (10s máximo).');
     try {
       const timeout = new Promise<any>((resolve) => setTimeout(() => resolve(null), 10000));
-      const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.15 });
+      const detectorOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.1 });
       
       // Workaround for WebGL video texture bug in modern Electron:
       const canvas = document.createElement('canvas');
@@ -224,7 +224,7 @@ function App() {
       interval = setInterval(async () => {
         try {
           if (liveVideoRef.current!.readyState < 2) return;
-          const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.15 });
+          const detectorOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.1 });
           
           const canvas = document.createElement('canvas');
           canvas.width = liveVideoRef.current!.videoWidth;
