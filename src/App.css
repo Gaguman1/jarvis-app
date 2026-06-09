@@ -528,3 +528,23 @@
   color: #fff;
   box-shadow: 0 0 10px rgba(var(--accent-rgb, 14, 165, 233), 0.3);
 }
+
+/* Floating Widget Mode */
+.widget-container {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  background-color: transparent !important;
+  overflow: hidden;
+  -webkit-app-region: drag; /* Allows moving the window by dragging anywhere */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Ensure the visualizer in widget mode shrinks slightly if needed and remains draggable */
+.widget-container .atom {
+  transform: scale(0.9);
+  pointer-events: none; /* Let drag pass through */
+}

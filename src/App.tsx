@@ -26,7 +26,48 @@ declare global {
   }
 }
 
+const IS_WIDGET = window.location.search.includes('widget=true');
+
+function WidgetApp() {
+  const [widgetState, setWidgetState] = useState({ isTyping: false, isJarvisSpeaking: false, userSpeaking: false, volume: '0' });
+  const visualizerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let ipc = window.ipcRenderer;
+    if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
+    if (ipc) {
+      ipc.on('sync-widget-state', (event: any, state: any) => {
+        setWidgetState(state);
+        if (visualizerRef.current && state.volume) {
+          visualizerRef.current.style.setProperty('--audio-volume', state.volume);
+        }
+      });
+    }
+  }, []);
+
+  return (
+    <div 
+      className={`widget-container ai-core-visualizer ${widgetState.isTyping ? 'thinking' : ''} ${widgetState.userSpeaking ? 'hearing' : ''} ${widgetState.isJarvisSpeaking ? 'jarvis-speaking' : ''}`}
+      onDoubleClick={() => {
+        let ipc = window.ipcRenderer;
+        if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
+        if (ipc) ipc.send('disable-widget-mode');
+      }}
+      ref={visualizerRef}
+    >
+      <div className="atom">
+        <div className="ring ring-1"></div>
+        <div className="ring ring-2"></div>
+        <div className="ring ring-3"></div>
+        <img src="./cyber_brain.png" alt="Brain Core" className="brain-core" />
+      </div>
+    </div>
+  );
+}
+
 function App() {
+  if (IS_WIDGET) return <WidgetApp />;
+
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -798,8 +839,30 @@ function App() {
     );
   }
 
+  // Sync state to widget
+  useEffect(() => {
+    let ipc = window.ipcRenderer;
+    if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
+    if (ipc) {
+      const interval = setInterval(() => {
+        const volume = visualizerRef.current ? visualizerRef.current.style.getPropertyValue('--audio-volume') : '0';
+        ipc.send('sync-widget-state', {
+          isTyping,
+          isJarvisSpeaking,
+          userSpeaking: vad.userSpeaking,
+          volume
+        });
+      }, 50);
+      return () => clearInterval(interval);
+    }
+  }, [isTyping, isJarvisSpeaking, vad.userSpeaking]);
+
+  if (window.location.search.includes('widget=true')) {
+    return <WidgetApp />;
+  }
+
   return (
-    <div className={`jarvis-container ${isCameraLive ? 'camera-live' : ''}`} data-protocol={protocol}>
+    <div className={`jarvis-container protocol-${protocol} ${isCameraLive ? 'camera-live' : ''}`} data-protocol={protocol}>
       <video 
         ref={liveVideoRef} 
         className="live-background-video" 
@@ -1040,6 +1103,18 @@ function App() {
               style={{ borderColor: 'rgba(14,165,233,0.5)' }}
             >
               🔄 Act.
+            </button>
+            <button 
+              className="vision-button"
+              onClick={() => {
+                let ipc = window.ipcRenderer;
+                if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
+                if (ipc) ipc.send('enable-widget-mode');
+              }}
+              title="Modo Widget Flotante"
+              style={{ borderColor: '#db2777', color: '#f472b6' }}
+            >
+              🫧 Widget
             </button>
             <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
               {attachedImage && (

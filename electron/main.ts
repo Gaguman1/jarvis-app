@@ -48,7 +48,7 @@ if (!isDev) {
 }
 
 let win: BrowserWindow | null
-
+let widgetWin: BrowserWindow | null = null
 function createWindow() {
   win = new BrowserWindow({
     width: 900,
@@ -147,6 +147,57 @@ app.whenReady().then(() => {
   })
   createWindow()
 })
+
+// === Auto-updater manually triggered ===
+ipcMain.on('enable-widget-mode', () => {
+  if (win) {
+    win.hide();
+  }
+  if (!widgetWin) {
+    const { screen } = require('electron');
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width, height } = primaryDisplay.workAreaSize;
+    
+    widgetWin = new BrowserWindow({
+      width: 250,
+      height: 250,
+      x: width - 270,
+      y: height - 270,
+      frame: false,
+      transparent: true,
+      alwaysOnTop: true,
+      skipTaskbar: true,
+      resizable: false,
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: false,
+      }
+    });
+
+    if (VITE_DEV_SERVER_URL) {
+      widgetWin.loadURL(VITE_DEV_SERVER_URL + '?widget=true');
+    } else {
+      widgetWin.loadURL(`file://${path.join(RENDERER_DIST, 'index.html')}?widget=true`);
+    }
+
+    widgetWin.on('closed', () => {
+      widgetWin = null;
+      if (win) win.show();
+    });
+  }
+});
+
+ipcMain.on('disable-widget-mode', () => {
+  if (widgetWin) {
+    widgetWin.close(); // closing it restores main window via 'closed' event
+  }
+});
+
+ipcMain.on('sync-widget-state', (event, state) => {
+  if (widgetWin && !widgetWin.isDestroyed()) {
+    widgetWin.webContents.send('sync-widget-state', state);
+  }
+});
 
 // === Auto-updater manually triggered ===
 ipcMain.handle('check-for-updates', async () => {
