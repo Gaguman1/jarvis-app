@@ -1,7 +1,7 @@
 {
   "name": "jarvis-app",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.7.0",
   "main": "dist-electron/main.js",
   "description": "J.A.R.V.I.S. - Asistente de Inteligencia Artificial",
   "author": "Antigravity",
@@ -80,6 +80,7 @@
     "@ricky0123/vad-react": "^0.0.36",
     "@ricky0123/vad-web": "^0.0.30",
     "electron-updater": "^6.8.9",
+    "face-api.js": "^0.22.2",
     "firebase": "^12.13.0",
     "node-ical": "^0.26.1",
     "react": "^19.2.6",

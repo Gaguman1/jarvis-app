@@ -3,6 +3,7 @@ import { saveMessage, getMessagesQuery, saveMemory, getMemoriesQuery } from './s
 import { onSnapshot } from 'firebase/firestore'
 import { chatWithJarvis } from './services/gemini'
 import { useWakeWord } from './useWakeWord'
+import * as faceapi from 'face-api.js'
 import './App.css'
 
 interface Message {
@@ -40,6 +41,9 @@ function App() {
   const [memories, setMemories] = useState<string[]>([]);
   const [isJarvisSpeaking, setIsJarvisSpeaking] = useState(false);
   const [protocol, setProtocol] = useState('standard');
+  const [isFaceModelsLoaded, setIsFaceModelsLoaded] = useState(false);
+  const [isFaceRegistered, setIsFaceRegistered] = useState(false);
+  const lastGreetingTimeRef = useRef<number>(0);
   
   const liveVideoRef = useRef<HTMLVideoElement>(null);
   const visualizerRef = useRef<HTMLDivElement>(null);
@@ -95,16 +99,30 @@ function App() {
       if (ipc) {
         const result = await ipc.invoke('check-python');
         setPythonAvailable(result.available);
-        // Also load auto-launch setting
         const launchResult = await ipc.invoke('get-auto-launch');
         setAutoLaunch(launchResult.enabled);
       } else {
-        setPythonAvailable(true); // Assume true in browser dev
+        setPythonAvailable(true);
       }
     };
     checkPython();
 
-    // Listen to updater events
+    const loadFaceModels = async () => {
+      try {
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri('./models'),
+          faceapi.nets.faceLandmark68Net.loadFromUri('./models'),
+          faceapi.nets.faceRecognitionNet.loadFromUri('./models')
+        ]);
+        setIsFaceModelsLoaded(true);
+        const savedDescriptor = localStorage.getItem('jarvis_face_descriptor');
+        if (savedDescriptor) setIsFaceRegistered(true);
+      } catch (e) {
+        console.error("Error loading face models", e);
+      }
+    };
+    loadFaceModels();
+
     let ipc = window.ipcRenderer;
     if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
     if (ipc) {
@@ -148,6 +166,69 @@ function App() {
       await ipc.invoke('quit-and-install');
     }
   };
+
+  const registerFace = async () => {
+    if (!liveVideoRef.current || !isCameraLive) {
+      alert("Por favor, active la cámara frontal primero.");
+      return;
+    }
+    setDebugText('Analizando rostro... Mire a la cámara.');
+    try {
+      const detection = await faceapi.detectSingleFace(liveVideoRef.current, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+      if (detection) {
+        const descriptorArray = Array.from(detection.descriptor);
+        localStorage.setItem('jarvis_face_descriptor', JSON.stringify(descriptorArray));
+        setIsFaceRegistered(true);
+        setDebugText('Rostro registrado exitosamente.');
+        speak("Perfil biométrico almacenado, señor. Ahora podré reconocerlo.");
+      } else {
+        setDebugText('No se detectó ningún rostro. Acerque su cara a la cámara e inténtelo de nuevo.');
+      }
+    } catch (e) {
+      console.error(e);
+      setDebugText('Error al registrar rostro.');
+    }
+  };
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isFaceModelsLoaded && isFaceRegistered && isCameraLive && liveVideoRef.current) {
+      interval = setInterval(async () => {
+        try {
+          const detection = await faceapi.detectSingleFace(liveVideoRef.current!, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+          if (detection) {
+            const savedStr = localStorage.getItem('jarvis_face_descriptor');
+            if (savedStr) {
+              const savedArray = JSON.parse(savedStr);
+              const savedDescriptor = new Float32Array(savedArray);
+              const distance = faceapi.euclideanDistance(detection.descriptor, savedDescriptor);
+              if (distance < 0.6) {
+                const now = Date.now();
+                // Saludar máximo una vez cada 10 minutos
+                if (now - lastGreetingTimeRef.current > 600000) {
+                  lastGreetingTimeRef.current = now;
+                  const greetings = [
+                    "Bienvenido de vuelta, señor.",
+                    "Sistemas en línea y a su disposición.",
+                    "Me alegra verlo de nuevo, señor.",
+                    "Autenticación biométrica exitosa. Bienvenido."
+                  ];
+                  const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+                  speak(randomGreeting);
+                  saveMessage('system', `(🤖 Autenticación Facial): ${randomGreeting}`);
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Face scan error", e);
+        }
+      }, 5000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isFaceModelsLoaded, isFaceRegistered, isCameraLive]);
 
   const toggleAutoLaunch = async () => {
     let ipc = window.ipcRenderer;
@@ -861,6 +942,17 @@ function App() {
               }}
             >
               💻
+            </button>
+            <button 
+              className={`vision-button ${isFaceRegistered ? 'live-active' : ''}`}
+              onClick={registerFace}
+              title={isFaceRegistered ? "Rostro ya registrado. Clic para volver a registrar." : "Registrar Rostro (Requiere cámara encendida)"}
+              style={{ 
+                backgroundColor: isFaceRegistered ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.05)', 
+                borderColor: isFaceRegistered ? '#10b981' : 'rgba(255,255,255,0.1)' 
+              }}
+            >
+              👁️
             </button>
             <button 
               className={`vision-button ${isCameraLive ? 'live-active' : ''}`}
