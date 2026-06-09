@@ -193,11 +193,10 @@ function App() {
       
       // Workaround for WebGL video texture bug in modern Electron:
       const canvas = document.createElement('canvas');
-      canvas.width = liveVideoRef.current.videoWidth;
-      canvas.height = liveVideoRef.current.videoHeight;
+      canvas.width = liveVideoRef.current.videoWidth || liveVideoRef.current.clientWidth || 640;
+      canvas.height = liveVideoRef.current.videoHeight || liveVideoRef.current.clientHeight || 480;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.filter = 'brightness(1.5) contrast(1.2)';
         ctx.drawImage(liveVideoRef.current, 0, 0, canvas.width, canvas.height);
       }
 
@@ -227,11 +226,10 @@ function App() {
           const detectorOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.1 });
           
           const canvas = document.createElement('canvas');
-          canvas.width = liveVideoRef.current!.videoWidth;
-          canvas.height = liveVideoRef.current!.videoHeight;
+          canvas.width = liveVideoRef.current!.videoWidth || liveVideoRef.current!.clientWidth || 640;
+          canvas.height = liveVideoRef.current!.videoHeight || liveVideoRef.current!.clientHeight || 480;
           const ctx = canvas.getContext('2d');
           if (ctx) {
-            ctx.filter = 'brightness(1.5) contrast(1.2)';
             ctx.drawImage(liveVideoRef.current!, 0, 0, canvas.width, canvas.height);
           }
 
