@@ -6,7 +6,8 @@ const groqApiKey = import.meta.env.VITE_GROQ_API_KEY;
 export const chatWithJarvis = async (
   input: string | { audioData: string }, 
   history: any[] = [], 
-  imageBase64?: string | null
+  imageBase64?: string | null,
+  memories: string[] = []
 ): Promise<{ response: string; transcription?: string } | null> => {
   try {
     const systemInstruction = `Eres J.A.R.V.I.S., el avanzado asistente de inteligencia artificial inspirado en Iron Man. 
@@ -80,9 +81,18 @@ Ejemplos de cuándo preguntar:
 - Si dice algo que no entendiste bien -> "Lo siento señor, no logré entender su solicitud con claridad. ¿Podría repetirla?"
 - Si dice "abre el juego" pero tiene varios -> "Señor, ¿a cuál juego se refiere específicamente?"
 - Si dice "borra eso" sin contexto -> "Señor, ¿podría especificar qué es lo que desea que elimine?"
-IMPORTANTE: Cuando hagas una pregunta de seguimiento, NO incluyas ninguna etiqueta [CMD:], [CMD_READ:], [CMD_VISION:] ni [CMD_URL:]. Solo responde con texto puro con tu pregunta. Cuando el usuario responda, ahí sí ejecutas el comando con la información completa.
+IMPORTANTE: Cuando hagas una pregunta de seguimiento, NO incluyas ninguna etiqueta [CMD:], [CMD_READ:], [CMD_VISION:], [CMD_URL:] ni [CMD_MEM:]. Solo responde con texto puro con tu pregunta. Cuando el usuario responda, ahí sí ejecutas el comando con la información completa.
 
-NUNCA omitas la etiqueta [CMD: ...] cuando se te pida abrir algo y tengas toda la información necesaria. Sé conciso en tu respuesta.`;
+REGLA DE MEMORIA A LARGO PLAZO (NUEVO):
+Si el usuario te pide que recuerdes algo importante (por ejemplo, "Mi color favorito es rojo", "El perro se llama Toby", "Me gusta la pizza", "Mi nombre es Juan"), DEBES usar la etiqueta [CMD_MEM: dato a recordar] en tu respuesta para almacenar ese dato en tu banco de memoria persistente.
+Ejemplos:
+Usuario: "Recuerda que odio el apio" -> Respuesta: "Entendido, señor. Recordaré que no le gusta el apio. [CMD_MEM: Al usuario no le gusta el apio]"
+Usuario: "Llámame Tony a partir de ahora" -> Respuesta: "A la orden, Tony. [CMD_MEM: El nombre del usuario es Tony]"
+
+NUNCA omitas la etiqueta [CMD: ...] cuando se te pida abrir algo y tengas toda la información necesaria. Sé conciso en tu respuesta.
+
+BANCO DE MEMORIA A LARGO PLAZO:
+${memories.length > 0 ? memories.join('\\n') : "Sin recuerdos aún."}`;
 
     // Limitar el historial a los últimos 6 mensajes para no exceder los límites de tokens
     const recentHistory = history.slice(-6);

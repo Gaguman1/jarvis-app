@@ -29,3 +29,18 @@ export const saveMessage = async (role: 'user' | 'system', content: string) => {
 export const getMessagesQuery = () => {
   return query(collection(db, "messages"), orderBy("timestamp", "asc"));
 };
+
+export const saveMemory = async (content: string) => {
+  try {
+    await addDoc(collection(db, "memories"), {
+      content,
+      timestamp: serverTimestamp()
+    });
+  } catch (e) {
+    console.error("Error adding memory: ", e);
+  }
+};
+
+export const getMemoriesQuery = () => {
+  return query(collection(db, "memories"), orderBy("timestamp", "asc"));
+};

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { saveMessage, getMessagesQuery } from './services/firebase'
+import { saveMessage, getMessagesQuery, saveMemory, getMemoriesQuery } from './services/firebase'
 import { onSnapshot } from 'firebase/firestore'
 import { chatWithJarvis } from './services/gemini'
 import { useWakeWord } from './useWakeWord'
@@ -35,6 +35,7 @@ function App() {
   const [autoLaunch, setAutoLaunch] = useState(true);
   const [isCameraLive, setIsCameraLive] = useState(false);
   const [isScreenLive, setIsScreenLive] = useState(false);
+  const [memories, setMemories] = useState<string[]>([]);
   
   const liveVideoRef = useRef<HTMLVideoElement>(null);
 
@@ -321,7 +322,17 @@ function App() {
       })) as Message[];
       setMessages(msgs);
     });
-    return () => unsubscribe();
+
+    const mq = getMemoriesQuery();
+    const unsubscribeMemories = onSnapshot(mq, (snapshot) => {
+      const mems = snapshot.docs.map(doc => doc.data().content as string);
+      setMemories(mems);
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeMemories();
+    };
   }, []);
 
   useEffect(() => {
@@ -463,7 +474,7 @@ function App() {
         } catch(e) { console.error("Error capturing live screen:", e); }
       }
 
-      const result = await chatWithJarvis({ audioData: audioBase64 }, messages, finalImage);
+      const result = await chatWithJarvis({ audioData: audioBase64 }, messages, finalImage, memories);
       if (!isCameraLive && !isScreenLive) {
         setAttachedImage(null);
       }
@@ -472,7 +483,18 @@ function App() {
         if (result.transcription) {
           await saveMessage('user', `(🗣️ Voz: ${result.transcription})`);
         }
-        await processResponse(result.response);
+
+        // Interceptar comandos de memoria
+        let finalResponse = result.response;
+        const memRegex = /\[CMD_MEM:\s*(.+?)\]/g;
+        let match;
+        while ((match = memRegex.exec(finalResponse)) !== null) {
+          const memoryContent = match[1];
+          await saveMemory(memoryContent);
+          finalResponse = finalResponse.replace(match[0], '');
+        }
+
+        await processResponse(finalResponse);
       }
     } catch (e) {
       console.error(e);
@@ -515,9 +537,19 @@ function App() {
 
     try {
       await saveMessage('user', newMessage || "(📸 Imagen adjuntada)");
-      const result = await chatWithJarvis(newMessage || "¿Qué ves en esta imagen?", messages, finalImage);
+      const result = await chatWithJarvis(newMessage || "¿Qué ves en esta imagen?", messages, finalImage, memories);
       if (result) {
-        await processResponse(result.response);
+        // Interceptar comandos de memoria
+        let finalResponse = result.response;
+        const memRegex = /\[CMD_MEM:\s*(.+?)\]/g;
+        let match;
+        while ((match = memRegex.exec(finalResponse)) !== null) {
+          const memoryContent = match[1];
+          await saveMemory(memoryContent);
+          finalResponse = finalResponse.replace(match[0], '');
+        }
+        
+        await processResponse(finalResponse);
       }
     } catch (e) { console.error(e); }
     setIsTyping(false);
