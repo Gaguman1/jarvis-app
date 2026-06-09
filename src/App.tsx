@@ -87,7 +87,7 @@ function WidgetApp() {
           alignItems: 'center',
           fontSize: '16px',
           transition: 'all 0.3s'
-        }}
+        } as any}
       >
         ↗️
       </button>
