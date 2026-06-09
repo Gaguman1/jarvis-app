@@ -39,6 +39,7 @@ function App() {
   const [isScreenLive, setIsScreenLive] = useState(false);
   const [memories, setMemories] = useState<string[]>([]);
   const [isJarvisSpeaking, setIsJarvisSpeaking] = useState(false);
+  const [protocol, setProtocol] = useState('standard');
   
   const liveVideoRef = useRef<HTMLVideoElement>(null);
   const visualizerRef = useRef<HTMLDivElement>(null);
@@ -180,6 +181,12 @@ function App() {
     const readMatch = responseText.match(/\[CMD_READ:\s*(.*?)\]/i);
     const urlMatch = responseText.match(/\[CMD_URL:\s*(.*?)\]/i);
     const cmdMatch = responseText.match(/\[CMD:\s*(.*?)\]/i);
+    const protocolMatch = responseText.match(/\[CMD_PROTOCOL:\s*(.*?)\]/i);
+    
+    if (protocolMatch && protocolMatch[1]) {
+      setProtocol(protocolMatch[1].trim().toLowerCase());
+      finalResponse = responseText.replace(/\[CMD_PROTOCOL:\s*(.*?)\]/ig, '').trim();
+    }
     
     if (visionMatch && visionMatch[1]) {
       const type = visionMatch[1].trim().toLowerCase();
@@ -673,7 +680,7 @@ function App() {
   }
 
   return (
-    <div className={`jarvis-container ${isCameraLive ? 'camera-live' : ''}`}>
+    <div className={`jarvis-container ${isCameraLive ? 'camera-live' : ''}`} data-protocol={protocol}>
       <video 
         ref={liveVideoRef} 
         className="live-background-video" 
@@ -682,9 +689,17 @@ function App() {
         muted 
         style={{ display: isCameraLive ? 'block' : 'none' }}
       />
-      <header className="header">
-        <div className="logo">J.A.R.V.I.S.</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <header className="header" style={{ alignItems: 'flex-start' }}>
+        <div>
+          <div className="logo">J.A.R.V.I.S.</div>
+          <div className="protocol-panel">
+            <button className={`protocol-btn ${protocol === 'standard' ? 'active' : ''}`} onClick={() => setProtocol('standard')}>🔵 Estándar</button>
+            <button className={`protocol-btn ${protocol === 'deep-work' ? 'active' : ''}`} onClick={() => setProtocol('deep-work')}>🟣 Deep Work</button>
+            <button className={`protocol-btn ${protocol === 'red-alert' ? 'active' : ''}`} onClick={() => setProtocol('red-alert')}>🔴 Alerta</button>
+            <button className={`protocol-btn ${protocol === 'night' ? 'active' : ''}`} onClick={() => setProtocol('night')}>🟠 Nocturno</button>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
           <div className="status-indicator">
             <div className="dot" style={{ backgroundColor: isTyping ? '#0ea5e9' : (isListening || vad.userSpeaking) ? '#ef4444' : isHandsFree ? '#f59e0b' : '#10b981' }}></div>
             {isTyping ? 'Procesando...' : vad.userSpeaking ? 'Escuchando voz...' : isHandsFree ? 'Modo Manos Libres Activo' : isListening ? 'Grabando manual...' : 'Sistemas en línea'}
