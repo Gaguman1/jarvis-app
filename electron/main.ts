@@ -67,7 +67,6 @@ function createWindow() {
     // win.webContents.openDevTools()
   } else {
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
-    win.webContents.openDevTools()
   }
 
   // Setup auto updater
