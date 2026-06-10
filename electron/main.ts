@@ -15,6 +15,25 @@ app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.commandLine.appendSwitch('disable-background-timer-throttling');
 app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
 
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+  process.exit(0);
+}
+
+app.on('second-instance', () => {
+  if (win) {
+    if (win.isMinimized()) win.restore();
+    if (mainBounds && win.getBounds().x === -9999) {
+      win.setBounds(mainBounds);
+    }
+    win.focus();
+  }
+  if (widgetWin) {
+    widgetWin.close();
+  }
+});
+
 process.env.APP_ROOT = path.join(_dirname, '..')
 
 // 🚧 Use ['ENV_NAME'] avoid vite:define plugin - System environment variable
