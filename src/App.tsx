@@ -238,6 +238,65 @@ function App() {
     }
   };
 
+  // Morning Protocol trigger
+  useEffect(() => {
+    // Solo se ejecuta en la ventana principal, no en el widget
+    const isWidget = new URLSearchParams(window.location.search).get('widget') === 'true';
+    if (isWidget) return;
+
+    const today = new Date().toDateString();
+    const lastGreeting = localStorage.getItem('lastMorningGreetingDate');
+    
+    if (lastGreeting !== today) {
+      localStorage.setItem('lastMorningGreetingDate', today);
+      
+      // Disparamos el protocolo tras unos segundos para asegurar que todo haya cargado
+      setTimeout(() => {
+        window.dispatchEvent(new Event('morning-protocol-trigger'));
+      }, 4000);
+    }
+  }, []);
+
+  // Morning Protocol execution (uses latest memories)
+  useEffect(() => {
+    const handleMorningProtocol = async () => {
+      const playlists = [
+        "https://www.youtube.com/playlist?list=PLK_VlGeVUfwwNkVA57U-Qr7AGGcBZgOQk",
+        "https://www.youtube.com/playlist?list=PLK_VlGeVUfwzBAs1CdCTj_6ySm_BIJnvX",
+        "https://www.youtube.com/playlist?list=PLK_VlGeVUfwweu9Bw7ZYhPHH4jgjAwtow"
+      ];
+      const randomPlaylist = playlists[Math.floor(Math.random() * playlists.length)];
+
+      let ipc = window.ipcRenderer;
+      if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
+      if (ipc) {
+        // Abrir entornos de trabajo
+        ipc.invoke('execute-command', 'start chrome');
+        ipc.invoke('execute-command', 'start whatsapp:');
+        setTimeout(() => {
+          ipc.invoke('execute-command', `start chrome "${randomPlaylist}"`);
+        }, 1000);
+      }
+
+      setIsTyping(true);
+      try {
+        const prompt = "SYSTEM_HIDDEN: El usuario acaba de encender la computadora. Eres Jarvis. Dale un saludo de buenos días, menciona la fecha de hoy de forma natural, cuéntale algo interesante o un chiste inteligente corto, y motívalo para su jornada.";
+        const result = await chatWithJarvis([{id: '0', role: 'user', content: prompt}], [], null, memories);
+        if (result && result.response) {
+          let finalResponse = result.response;
+          await saveMessage('system', finalResponse);
+          speak(finalResponse);
+        }
+      } catch (e) {
+        console.error("Error in Morning Protocol:", e);
+      }
+      setIsTyping(false);
+    };
+
+    window.addEventListener('morning-protocol-trigger', handleMorningProtocol);
+    return () => window.removeEventListener('morning-protocol-trigger', handleMorningProtocol);
+  }, [memories]);
+
   // Check Python availability & Auto-updater listener on mount
   useEffect(() => {
     const checkPython = async () => {
