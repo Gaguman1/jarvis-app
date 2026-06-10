@@ -281,7 +281,7 @@ function App() {
       setIsTyping(true);
       try {
         const prompt = "SYSTEM_HIDDEN: El usuario acaba de encender la computadora. Eres Jarvis. Dale un saludo de buenos días, menciona la fecha de hoy de forma natural, cuéntale algo interesante o un chiste inteligente corto, y motívalo para su jornada.";
-        const result = await chatWithJarvis([{id: '0', role: 'user', content: prompt}], [], null, memories);
+        const result = await chatWithJarvis(prompt, [], null, memories);
         if (result && result.response) {
           let finalResponse = result.response;
           await saveMessage('system', finalResponse);
