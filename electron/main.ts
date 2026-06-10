@@ -13,6 +13,7 @@ const _dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fil
 // Prevent Chromium from freezing background window scripts and animations
 app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.commandLine.appendSwitch('disable-background-timer-throttling');
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
 
 process.env.APP_ROOT = path.join(_dirname, '..')
 
@@ -65,6 +66,7 @@ function createWindow() {
       nodeIntegration: true,
       contextIsolation: false,
       defaultEncoding: 'utf-8',
+      backgroundThrottling: false,
     },
   })
 
