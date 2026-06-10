@@ -10,6 +10,10 @@ import puppeteer from 'puppeteer'
 
 const _dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url))
 
+// Prevent Chromium from freezing background window scripts and animations
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+app.commandLine.appendSwitch('disable-background-timer-throttling');
+
 process.env.APP_ROOT = path.join(_dirname, '..')
 
 // 🚧 Use ['ENV_NAME'] avoid vite:define plugin - System environment variable
@@ -151,7 +155,7 @@ app.whenReady().then(() => {
 // === Auto-updater manually triggered ===
 ipcMain.on('enable-widget-mode', () => {
   if (win) {
-    win.hide();
+    win.minimize();
   }
   if (!widgetWin) {
     const { screen } = require('electron');
@@ -182,7 +186,10 @@ ipcMain.on('enable-widget-mode', () => {
 
     widgetWin.on('closed', () => {
       widgetWin = null;
-      if (win) win.show();
+      if (win) {
+        win.restore();
+        win.focus();
+      }
     });
   }
 });
