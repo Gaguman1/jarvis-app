@@ -170,10 +170,10 @@ ipcMain.on('enable-widget-mode', () => {
     const { width, height } = primaryDisplay.workAreaSize;
     
     widgetWin = new BrowserWindow({
-      width: 250,
-      height: 250,
-      x: width - 270,
-      y: height - 270,
+      width: 320,
+      height: 320,
+      x: width - 340,
+      y: height - 340,
       frame: false,
       transparent: true,
       alwaysOnTop: true,
