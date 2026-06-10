@@ -167,8 +167,7 @@ ipcMain.on('enable-widget-mode', () => {
       transparent: true,
       alwaysOnTop: true,
       skipTaskbar: true,
-      resizable: true, // Needed for double-click-to-maximize on Windows
-      maximizable: true,
+      resizable: false, // We no longer need resize/maximize hacks
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,
@@ -180,16 +179,6 @@ ipcMain.on('enable-widget-mode', () => {
     } else {
       widgetWin.loadURL(`file://${path.join(RENDERER_DIST, 'index.html')}?widget=true`);
     }
-
-    widgetWin.on('maximize', () => {
-      if (widgetWin) {
-        widgetWin.unmaximize();
-        widgetWin.webContents.send('widget-double-clicked');
-        setTimeout(() => {
-          if (widgetWin) widgetWin.close();
-        }, 300); // 300ms delay to show the UX animation before closing
-      }
-    });
 
     widgetWin.on('closed', () => {
       widgetWin = null;
@@ -207,6 +196,12 @@ ipcMain.on('disable-widget-mode', () => {
 ipcMain.on('sync-widget-state', (event, state) => {
   if (widgetWin && !widgetWin.isDestroyed()) {
     widgetWin.webContents.send('sync-widget-state', state);
+  }
+});
+
+ipcMain.on('window-move', (event, { x, y }) => {
+  if (widgetWin && !widgetWin.isDestroyed()) {
+    widgetWin.setPosition(x, y);
   }
 });
 

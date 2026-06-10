@@ -537,7 +537,6 @@
   padding: 0;
   background-color: transparent !important;
   overflow: hidden;
-  -webkit-app-region: drag; /* Allows moving the window by dragging anywhere */
   display: flex;
   justify-content: center;
   align-items: center;

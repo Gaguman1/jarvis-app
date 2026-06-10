@@ -58,6 +58,39 @@ function WidgetApp() {
     };
   }, []);
 
+  // Drag state
+  const isDraggingRef = useRef(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    isDraggingRef.current = true;
+    dragOffset.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDraggingRef.current) {
+      let ipc = window.ipcRenderer;
+      if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
+      if (ipc) {
+        // Enviar la posición de pantalla actual del ratón menos el offset dentro de la ventana
+        ipc.send('window-move', { x: e.screenX - dragOffset.current.x, y: e.screenY - dragOffset.current.y });
+      }
+    }
+  };
+
+  const handleMouseUp = () => {
+    isDraggingRef.current = false;
+  };
+
+  const handleDoubleClick = () => {
+    setIsClosing(true);
+    let ipc = window.ipcRenderer;
+    if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
+    setTimeout(() => {
+      if (ipc) ipc.send('disable-widget-mode');
+    }, 300);
+  };
+
   return (
     <div 
       className={`widget-container ai-core-visualizer ${widgetState.isTyping ? 'thinking' : ''} ${widgetState.userSpeaking ? 'hearing' : ''} ${widgetState.isJarvisSpeaking ? 'jarvis-speaking' : ''} ${isClosing ? 'widget-closing' : ''}`}
@@ -65,12 +98,15 @@ function WidgetApp() {
       data-protocol={widgetState.protocol}
       style={{
         background: 'radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, transparent 60%)',
+        cursor: 'grab'
       }}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onDoubleClick={handleDoubleClick}
     >
-      <div 
-        className="atom" 
-        style={{ WebkitAppRegion: 'drag' } as any}
-      >
+      <div className="atom" style={{ pointerEvents: 'none' }}>
         <div className="ring ring-1"></div>
         <div className="ring ring-2"></div>
         <div className="ring ring-3"></div>
@@ -79,7 +115,7 @@ function WidgetApp() {
           alt="Brain Core" 
           className="brain-core" 
           draggable={false}
-          style={{ WebkitAppRegion: 'drag', pointerEvents: 'none' } as any}
+          style={{ pointerEvents: 'none' }}
         />
       </div>
       <button 
