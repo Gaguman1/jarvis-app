@@ -29,10 +29,14 @@ declare global {
 const IS_WIDGET = window.location.search.includes('widget=true');
 
 function WidgetApp() {
-  const [widgetState, setWidgetState] = useState({ isTyping: false, isJarvisSpeaking: false, userSpeaking: false, volume: '0' });
+  const [widgetState, setWidgetState] = useState({ isTyping: false, isJarvisSpeaking: false, userSpeaking: false, volume: '0', protocol: 'standard' });
   const visualizerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Make body transparent for the widget
+    document.body.style.background = 'transparent';
+    document.documentElement.style.background = 'transparent';
+
     let ipc = window.ipcRenderer;
     if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
     if (ipc) {
@@ -43,19 +47,28 @@ function WidgetApp() {
         }
       });
     }
+
+    return () => {
+      document.body.style.background = '';
+      document.documentElement.style.background = '';
+    };
   }, []);
 
   return (
     <div 
       className={`widget-container ai-core-visualizer ${widgetState.isTyping ? 'thinking' : ''} ${widgetState.userSpeaking ? 'hearing' : ''} ${widgetState.isJarvisSpeaking ? 'jarvis-speaking' : ''}`}
-      onDoubleClick={() => {
-        let ipc = window.ipcRenderer;
-        if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
-        if (ipc) ipc.send('disable-widget-mode');
-      }}
       ref={visualizerRef}
+      data-protocol={widgetState.protocol}
     >
-      <div className="atom">
+      <div 
+        className="atom" 
+        style={{ WebkitAppRegion: 'drag', pointerEvents: 'auto' } as any}
+        onDoubleClick={() => {
+          let ipc = window.ipcRenderer;
+          if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
+          if (ipc) ipc.send('disable-widget-mode');
+        }}
+      >
         <div className="ring ring-1"></div>
         <div className="ring ring-2"></div>
         <div className="ring ring-3"></div>
@@ -872,12 +885,13 @@ function App() {
           isTyping,
           isJarvisSpeaking,
           userSpeaking: vad.userSpeaking,
-          volume
+          volume,
+          protocol
         });
       }, 50);
       return () => clearInterval(interval);
     }
-  }, [isTyping, isJarvisSpeaking, vad.userSpeaking]);
+  }, [isTyping, isJarvisSpeaking, vad.userSpeaking, protocol]);
 
 
   // Show loading screen while checking Python

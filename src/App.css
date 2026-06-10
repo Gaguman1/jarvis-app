@@ -546,5 +546,4 @@
 /* Ensure the visualizer in widget mode shrinks slightly if needed and remains draggable */
 .widget-container .atom {
   transform: scale(0.9);
-  pointer-events: none; /* Let drag pass through */
 }
