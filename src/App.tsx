@@ -42,7 +42,15 @@ function WidgetApp() {
     if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
     if (ipc) {
       ipc.on('sync-widget-state', (_event: any, state: any) => {
-        setWidgetState(state);
+        setWidgetState(prev => {
+          if (prev.isTyping !== state.isTyping || 
+              prev.userSpeaking !== state.userSpeaking || 
+              prev.isJarvisSpeaking !== state.isJarvisSpeaking || 
+              prev.protocol !== state.protocol) {
+            return state;
+          }
+          return prev;
+        });
         if (visualizerRef.current && state.volume) {
           visualizerRef.current.style.setProperty('--audio-volume', state.volume);
         }
