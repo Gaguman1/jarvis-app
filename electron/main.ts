@@ -216,6 +216,7 @@ ipcMain.on('enable-widget-mode', () => {
       widgetWin = null;
       if (win && mainBounds) {
         win.setBounds(mainBounds);
+        win.setSkipTaskbar(false);
         win.focus();
       }
     });

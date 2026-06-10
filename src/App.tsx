@@ -100,7 +100,7 @@ function WidgetApp() {
   };
 
   return (
-    <div className={`jarvis-container protocol-${widgetState.protocol}`} data-protocol={widgetState.protocol} style={{ background: 'transparent', height: '100vh', width: '100vw', margin: 0, padding: 0 }}>
+    <div className={`jarvis-container protocol-${widgetState.protocol}`} data-protocol={widgetState.protocol} style={{ background: 'transparent', height: '100vh', width: '100vw', margin: 0, padding: 0, WebkitAppRegion: 'no-drag' }}>
       <div 
         className={`widget-container ai-core-visualizer ${widgetState.isTyping ? 'thinking' : ''} ${widgetState.userSpeaking ? 'hearing' : ''} ${widgetState.isJarvisSpeaking ? 'jarvis-speaking' : ''} ${isClosing ? 'widget-closing' : ''}`}
         ref={visualizerRef}
