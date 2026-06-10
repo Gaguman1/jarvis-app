@@ -59,20 +59,29 @@ function WidgetApp() {
       className={`widget-container ai-core-visualizer ${widgetState.isTyping ? 'thinking' : ''} ${widgetState.userSpeaking ? 'hearing' : ''} ${widgetState.isJarvisSpeaking ? 'jarvis-speaking' : ''}`}
       ref={visualizerRef}
       data-protocol={widgetState.protocol}
+      style={{
+        background: 'radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, transparent 60%)',
+      }}
     >
       <div 
         className="atom" 
-        style={{ WebkitAppRegion: 'drag', pointerEvents: 'auto' } as any}
-        onDoubleClick={() => {
-          let ipc = window.ipcRenderer;
-          if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
-          if (ipc) ipc.send('disable-widget-mode');
-        }}
+        style={{ WebkitAppRegion: 'drag' } as any}
       >
         <div className="ring ring-1"></div>
         <div className="ring ring-2"></div>
         <div className="ring ring-3"></div>
-        <img src="./cyber_brain.png" alt="Brain Core" className="brain-core" />
+        <img 
+          src="./cyber_brain.png" 
+          alt="Brain Core" 
+          className="brain-core" 
+          style={{ WebkitAppRegion: 'no-drag', cursor: 'pointer', pointerEvents: 'auto' } as any}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            let ipc = window.ipcRenderer;
+            if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
+            if (ipc) ipc.send('disable-widget-mode');
+          }}
+        />
       </div>
       <button 
         title="Restaurar ventana principal"
