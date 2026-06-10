@@ -54,6 +54,7 @@ if (!isDev) {
 
 let win: BrowserWindow | null
 let widgetWin: BrowserWindow | null = null
+let mainBounds: Electron.Rectangle | null = null
 function createWindow() {
   win = new BrowserWindow({
     width: 900,
@@ -155,7 +156,13 @@ app.whenReady().then(() => {
 // === Auto-updater manually triggered ===
 ipcMain.on('enable-widget-mode', () => {
   if (win) {
-    win.minimize();
+    mainBounds = win.getBounds();
+    win.setBounds({ x: -9999, y: -9999, width: mainBounds.width, height: mainBounds.height });
+    
+    // Si la barra de tareas llama a la ventana principal, cerramos el widget
+    win.once('focus', () => {
+      if (widgetWin) widgetWin.close();
+    });
   }
   if (!widgetWin) {
     const { screen } = require('electron');
@@ -186,8 +193,8 @@ ipcMain.on('enable-widget-mode', () => {
 
     widgetWin.on('closed', () => {
       widgetWin = null;
-      if (win) {
-        win.restore();
+      if (win && mainBounds) {
+        win.setBounds(mainBounds);
         win.focus();
       }
     });
