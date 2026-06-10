@@ -30,6 +30,7 @@ const IS_WIDGET = window.location.search.includes('widget=true');
 
 function WidgetApp() {
   const [widgetState, setWidgetState] = useState({ isTyping: false, isJarvisSpeaking: false, userSpeaking: false, volume: '0', protocol: 'standard' });
+  const [isClosing, setIsClosing] = useState(false);
   const visualizerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,6 +47,9 @@ function WidgetApp() {
           visualizerRef.current.style.setProperty('--audio-volume', state.volume);
         }
       });
+      ipc.on('widget-double-clicked', () => {
+        setIsClosing(true);
+      });
     }
 
     return () => {
@@ -56,7 +60,7 @@ function WidgetApp() {
 
   return (
     <div 
-      className={`widget-container ai-core-visualizer ${widgetState.isTyping ? 'thinking' : ''} ${widgetState.userSpeaking ? 'hearing' : ''} ${widgetState.isJarvisSpeaking ? 'jarvis-speaking' : ''}`}
+      className={`widget-container ai-core-visualizer ${widgetState.isTyping ? 'thinking' : ''} ${widgetState.userSpeaking ? 'hearing' : ''} ${widgetState.isJarvisSpeaking ? 'jarvis-speaking' : ''} ${isClosing ? 'widget-closing' : ''}`}
       ref={visualizerRef}
       data-protocol={widgetState.protocol}
       style={{
@@ -74,13 +78,8 @@ function WidgetApp() {
           src="./cyber_brain.png" 
           alt="Brain Core" 
           className="brain-core" 
-          style={{ WebkitAppRegion: 'no-drag', cursor: 'pointer', pointerEvents: 'auto' } as any}
-          onDoubleClick={(e) => {
-            e.stopPropagation();
-            let ipc = window.ipcRenderer;
-            if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
-            if (ipc) ipc.send('disable-widget-mode');
-          }}
+          draggable={false}
+          style={{ WebkitAppRegion: 'drag', pointerEvents: 'none' } as any}
         />
       </div>
       <button 

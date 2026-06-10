@@ -167,7 +167,8 @@ ipcMain.on('enable-widget-mode', () => {
       transparent: true,
       alwaysOnTop: true,
       skipTaskbar: true,
-      resizable: false,
+      resizable: true, // Needed for double-click-to-maximize on Windows
+      maximizable: true,
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,
@@ -179,6 +180,16 @@ ipcMain.on('enable-widget-mode', () => {
     } else {
       widgetWin.loadURL(`file://${path.join(RENDERER_DIST, 'index.html')}?widget=true`);
     }
+
+    widgetWin.on('maximize', () => {
+      if (widgetWin) {
+        widgetWin.unmaximize();
+        widgetWin.webContents.send('widget-double-clicked');
+        setTimeout(() => {
+          if (widgetWin) widgetWin.close();
+        }, 300); // 300ms delay to show the UX animation before closing
+      }
+    });
 
     widgetWin.on('closed', () => {
       widgetWin = null;
