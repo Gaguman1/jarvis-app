@@ -100,62 +100,66 @@ function WidgetApp() {
   };
 
   return (
-    <div 
-      className={`widget-container ai-core-visualizer ${widgetState.isTyping ? 'thinking' : ''} ${widgetState.userSpeaking ? 'hearing' : ''} ${widgetState.isJarvisSpeaking ? 'jarvis-speaking' : ''} ${isClosing ? 'widget-closing' : ''}`}
-      ref={visualizerRef}
-      data-protocol={widgetState.protocol}
-      style={{
-        background: 'radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, transparent 60%)',
-        cursor: 'grab'
-      }}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onDoubleClick={handleDoubleClick}
-    >
-      <div className="atom" style={{ pointerEvents: 'none' }}>
-        <div className="ring ring-1"></div>
-        <div className="ring ring-2"></div>
-        <div className="ring ring-3"></div>
-        <img 
-          src="./cyber_brain.png" 
-          alt="Brain Core" 
-          className="brain-core" 
-          draggable={false}
-          style={{ pointerEvents: 'none' }}
-        />
-      </div>
-      <button 
-        title="Restaurar ventana principal"
-        onClick={(e) => {
-          e.stopPropagation();
-          let ipc = window.ipcRenderer;
-          if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
-          if (ipc) ipc.send('disable-widget-mode');
-        }}
+    <div className={`jarvis-container protocol-${widgetState.protocol}`} data-protocol={widgetState.protocol} style={{ background: 'transparent', height: '100vh', width: '100vw', margin: 0, padding: 0 }}>
+      <div 
+        className={`widget-container ai-core-visualizer ${widgetState.isTyping ? 'thinking' : ''} ${widgetState.userSpeaking ? 'hearing' : ''} ${widgetState.isJarvisSpeaking ? 'jarvis-speaking' : ''} ${isClosing ? 'widget-closing' : ''}`}
+        ref={visualizerRef}
+        data-protocol={widgetState.protocol}
         style={{
-          position: 'absolute',
-          top: '10px',
-          right: '10px',
-          background: 'rgba(14, 165, 233, 0.2)',
-          border: '1px solid rgba(14, 165, 233, 0.5)',
-          color: '#0ea5e9',
-          borderRadius: '50%',
-          width: '32px',
-          height: '32px',
-          cursor: 'pointer',
-          zIndex: 100,
-          WebkitAppRegion: 'no-drag',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          fontSize: '16px',
-          transition: 'all 0.3s'
-        } as any}
+          background: 'radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, transparent 60%)',
+          cursor: 'grab',
+          height: '100%',
+          width: '100%'
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onDoubleClick={handleDoubleClick}
       >
-        ↗️
-      </button>
+        <div className="atom" style={{ pointerEvents: 'none' }}>
+          <div className="ring ring-1"></div>
+          <div className="ring ring-2"></div>
+          <div className="ring ring-3"></div>
+          <img 
+            src="./cyber_brain.png" 
+            alt="Brain Core" 
+            className="brain-core" 
+            draggable={false}
+            style={{ pointerEvents: 'none' }}
+          />
+        </div>
+        <button 
+          title="Restaurar ventana principal"
+          onClick={(e) => {
+            e.stopPropagation();
+            let ipc = window.ipcRenderer;
+            if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
+            if (ipc) ipc.send('disable-widget-mode');
+          }}
+          style={{
+            position: 'absolute',
+            top: '10px',
+            right: '10px',
+            background: 'rgba(14, 165, 233, 0.2)',
+            border: '1px solid rgba(14, 165, 233, 0.5)',
+            color: '#0ea5e9',
+            borderRadius: '50%',
+            width: '32px',
+            height: '32px',
+            cursor: 'pointer',
+            zIndex: 100,
+            WebkitAppRegion: 'no-drag',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            fontSize: '16px',
+            transition: 'all 0.3s'
+          } as any}
+        >
+          ↗️
+        </button>
+      </div>
     </div>
   );
 }
