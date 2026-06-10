@@ -6,6 +6,7 @@ import { session } from 'electron'
 import fs from 'node:fs/promises'
 import { readFileSync } from 'node:fs'
 import { autoUpdater } from 'electron-updater'
+import puppeteer from 'puppeteer'
 
 const _dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url))
 
@@ -441,3 +442,56 @@ ipcMain.handle('wake-word-follow-up', () => {
   }
   return { success: false };
 });
+
+// === Puppeteer Web Browsing ===
+ipcMain.handle('search-web', async (event, query: string) => {
+  let browser = null;
+  try {
+    browser = await puppeteer.launch({ headless: true });
+    const page = await browser.newPage();
+    await page.goto(`https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`);
+    
+    const results = await page.evaluate(() => {
+      const links = Array.from(document.querySelectorAll('.result__snippet'));
+      return links.slice(0, 5).map(el => {
+        const titleEl = el.parentElement?.querySelector('.result__title .result__a') as HTMLAnchorElement;
+        const linkEl = el.parentElement?.querySelector('.result__url') as HTMLAnchorElement;
+        return {
+          title: titleEl?.innerText || '',
+          url: linkEl?.href || titleEl?.href || '',
+          snippet: (el as HTMLElement).innerText || ''
+        };
+      });
+    });
+    
+    await browser.close();
+    return { success: true, results };
+  } catch (error: any) {
+    if (browser) await browser.close();
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('fetch-url', async (event, url: string) => {
+  let browser = null;
+  try {
+    browser = await puppeteer.launch({ headless: true });
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    
+    // Extraer texto limpio de toda la página
+    const text = await page.evaluate(() => {
+      // Remove scripts, styles, navs, headers, footers to get clean text
+      const elementsToRemove = document.querySelectorAll('script, style, nav, header, footer, iframe, img, svg');
+      elementsToRemove.forEach(el => el.remove());
+      return document.body.innerText;
+    });
+    
+    await browser.close();
+    return { success: true, text: text.substring(0, 50000) }; // Limit size
+  } catch (error: any) {
+    if (browser) await browser.close();
+    return { success: false, error: error.message };
+  }
+});
+

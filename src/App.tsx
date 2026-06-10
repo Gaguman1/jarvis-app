@@ -105,6 +105,7 @@ function App() {
   const [isHandsFree, setIsHandsFree] = useState(true);
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const [debugText, setDebugText] = useState('');
+  const [isSearchingWeb, setIsSearchingWeb] = useState(false);
   const [installingApp, setInstallingApp] = useState<string | null>(null);
   const [pythonAvailable, setPythonAvailable] = useState<boolean | null>(null); // null = checking
   const [autoLaunch, setAutoLaunch] = useState(true);
@@ -367,6 +368,8 @@ function App() {
   // Función centralizada para procesar respuestas con comandos
   const processResponse = async (responseText: string) => {
     let finalResponse = responseText;
+    const searchMatch = responseText.match(/\[CMD_SEARCH:\s*(.*?)\]/i);
+    const fetchMatch = responseText.match(/\[CMD_FETCH:\s*(.*?)\]/i);
     const visionMatch = responseText.match(/\[CMD_VISION:\s*(.*?)\]/i);
     const readMatch = responseText.match(/\[CMD_READ:\s*(.*?)\]/i);
     const urlMatch = responseText.match(/\[CMD_URL:\s*(.*?)\]/i);
@@ -450,6 +453,40 @@ function App() {
         }
       }
       finalResponse = responseText.replace(/\[CMD:\s*(.*?)\]/ig, '').trim();
+    }
+    
+    // Ghost Browser Logic
+    if (searchMatch && searchMatch[1]) {
+      const query = searchMatch[1];
+      setIsSearchingWeb(true);
+      let ipc = window.ipcRenderer;
+      if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
+      if (ipc) {
+        const result = await ipc.invoke('search-web', query);
+        if (result.success) {
+          const linksText = result.results.map((r: any, i: number) => `[${i+1}] ${r.title}\\nURL: ${r.url}\\nSnippet: ${r.snippet}`).join('\\n\\n');
+          const followUp = await chatWithJarvis(`RESULTADOS DE BÚSQUEDA PARA "${query}":\\n${linksText}\\n\\nAnaliza los resultados. Si necesitas leer una página completa, usa [CMD_FETCH: url]. Si tienes suficiente info, dale el resumen al usuario.`, messages, null);
+          if (followUp) finalResponse = followUp.response;
+        } else {
+          finalResponse = "Lo siento señor, mi módulo de búsqueda experimentó un error.";
+        }
+      }
+      setIsSearchingWeb(false);
+    } else if (fetchMatch && fetchMatch[1]) {
+      const url = fetchMatch[1];
+      setIsSearchingWeb(true);
+      let ipc = window.ipcRenderer;
+      if (!ipc && window.require) ipc = window.require('electron').ipcRenderer;
+      if (ipc) {
+        const result = await ipc.invoke('fetch-url', url);
+        if (result.success) {
+          const followUp = await chatWithJarvis(`TEXTO EXTRAÍDO DE ${url}:\\n\\n${result.text}\\n\\nAnaliza el texto. Si necesitas buscar más, usa [CMD_SEARCH] o [CMD_FETCH]. Si ya tienes la respuesta, habla con el usuario.`, messages, null);
+          if (followUp) finalResponse = followUp.response;
+        } else {
+          finalResponse = "Lo siento señor, no pude acceder a la página web solicitada.";
+        }
+      }
+      setIsSearchingWeb(false);
     }
     await saveMessage('system', finalResponse);
     speak(finalResponse);
@@ -1023,6 +1060,22 @@ function App() {
               Cerrar
             </button>
           )}
+        </div>
+      )}
+
+      {isSearchingWeb && (
+        <div className="installing-overlay" style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000,
+          animation: 'fadeIn 0.3s ease'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ width: '50px', height: '50px', border: '3px solid rgba(14,165,233,0.3)', borderTop: '3px solid #0ea5e9', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }}></div>
+            <div style={{ color: '#0ea5e9', fontSize: '18px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span>🌐 Investigando en la web...</span>
+            </div>
+          </div>
         </div>
       )}
 
