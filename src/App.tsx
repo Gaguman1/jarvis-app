@@ -932,7 +932,7 @@ function App() {
           volume,
           protocol
         });
-      }, 50);
+      }, 16); // 16ms for ~60fps smooth animation in widget mode
       return () => clearInterval(interval);
     }
   }, [isTyping, isJarvisSpeaking, vad.userSpeaking, protocol]);
