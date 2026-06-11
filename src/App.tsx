@@ -261,9 +261,9 @@ function App() {
   useEffect(() => {
     const handleMorningProtocol = async () => {
       const playlists = [
-        "https://www.youtube.com/playlist?list=PLK_VlGeVUfwwNkVA57U-Qr7AGGcBZgOQk",
-        "https://www.youtube.com/playlist?list=PLK_VlGeVUfwzBAs1CdCTj_6ySm_BIJnvX",
-        "https://www.youtube.com/playlist?list=PLK_VlGeVUfwweu9Bw7ZYhPHH4jgjAwtow"
+        "https://www.youtube.com/watch?list=PLK_VlGeVUfwwNkVA57U-Qr7AGGcBZgOQk",
+        "https://www.youtube.com/watch?list=PLK_VlGeVUfwzBAs1CdCTj_6ySm_BIJnvX",
+        "https://www.youtube.com/watch?list=PLK_VlGeVUfwweu9Bw7ZYhPHH4jgjAwtow"
       ];
       const randomPlaylist = playlists[Math.floor(Math.random() * playlists.length)];
 
@@ -273,6 +273,7 @@ function App() {
         // Abrir entornos de trabajo
         ipc.invoke('execute-command', 'start chrome');
         ipc.invoke('execute-command', 'start whatsapp:');
+        ipc.invoke('execute-command', 'start "" "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Antigravity\\Antigravity.lnk"');
         setTimeout(() => {
           ipc.invoke('execute-command', `start chrome "${randomPlaylist}"`);
         }, 1000);
